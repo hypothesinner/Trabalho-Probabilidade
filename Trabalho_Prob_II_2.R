@@ -66,6 +66,12 @@ lambda_y <- e_y
 # Entretanto, como esse valor é muito próximo de zero, essa associação é bastante fraca. Isso também é observado no coeficiente de correlação, que foi de 
 # aproximadamente 0,045, indicando uma relação linear positiva muito fraca entre as variáveis.
 
+# A correlação positiva é um fator que possibilita a modelagem dessa distribuição por uma Poisson bivariada, uma vez que essa apenas admite parâmetros positivos
+# Além disso, a baixa magnitude do valor demonstra uma relação muito pequena entre os mandos de campo no número de gols, embora não nula, apresentando um pequeno
+# desvio positivo em razão da tendência de placares baixos pela competitividade do campeonato e pelo desgaste do fator fora, relacionado com distâncias e diversidade
+# de condições climáticas (geralmente extenunantes ou limitadoras da performance), fazendo com que os visitantes busquem pelo empate e limitem os gols para baixo, 
+# fazendo com que mandante e visitante marquem menos.
+
 ######### distribuicoes marginais teoricas -  Poisson univariada ##############
 
 library(ggplot2)
@@ -81,6 +87,8 @@ ggplot(prob_x, aes(x = X)) +
             linetype = "dashed") +
   labs(
     title = "Distribuição empírica x Poisson teórica",
+    subtitle = paste0("Comparação das probabilidades observadas com Poisson (λ = ",
+                      round(lambda_x, 2), ")"),
     x = "X",
     y = "Probabilidade",
     color = "Distribuição"
@@ -92,8 +100,10 @@ ggplot(prob_x, aes(x = X)) +
   theme_minimal() +
   theme(
     legend.position = "bottom",
-    plot.title = element_text(hjust = 0.5)
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, color = "grey30")
   )
+
 
 # PARA Y
 
@@ -107,6 +117,8 @@ ggplot(prob_y, aes(x = Y)) +
             linetype = "dashed") +
   labs(
     title = "Distribuição empírica x Poisson teórica",
+    subtitle = paste0("Comparação das probabilidades observadas com Poisson (λ = ",
+                      round(lambda_x, 2), ")"),
     x = "Y",
     y = "Probabilidade",
     color = "Distribuição"
@@ -119,6 +131,27 @@ ggplot(prob_y, aes(x = Y)) +
   theme(
     legend.position = "bottom",
     plot.title = element_text(hjust = 0.5)
+  )
+
+ggplot(prob_y, aes(x = Y)) +
+  geom_col(aes(y = Probabilidade, fill = "Empírica"), alpha = 0.7, width = 0.6) +
+  geom_point(aes(y = Poisson, color = "Poisson teórica"), size = 3, shape = 18) +
+  geom_line(aes(y = Poisson, color = "Poisson teórica"), linetype = "dashed") +
+  scale_fill_manual(values = c("Empírica" = "steelblue")) +
+  scale_color_manual(values = c("Poisson teórica" = "firebrick")) +
+  scale_x_continuous(breaks = 0:max(prob_x$X)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Distribuição empírica x Poisson teórica",
+    subtitle = paste0("Comparação das probabilidades observadas com Poisson (λ = ",
+                      round(lambda_x, 2), ")"),
+    x = "X", y = "Probabilidade", fill = NULL, color = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, color = "grey30")
   )
 
 # INTERPRETAÇÃO CASO X 
@@ -239,12 +272,35 @@ dist_teorica_ajust <- matrix(
 )
 
 
+# Paletas personalizadas (baixo -> alto)
+paleta_emp <- list(
+  c(0.00, "#f7fcf0"),
+  c(0.25, "#a8ddb5"),
+  c(0.50, "#4eb3d3"),
+  c(0.75, "#2b8cbe"),
+  c(1.00, "#084081")
+)
+
+paleta_teo <- list(
+  c(0.00, "#fff5eb"),
+  c(0.25, "#fdd0a2"),
+  c(0.50, "#fd8d3c"),
+  c(0.75, "#d94801"),
+  c(1.00, "#7f2704")
+)
+
+# Escala z comum, para comparação visual justa entre os dois gráficos
+zmax <- max(prob_x_y_ajust, dist_teorica_ajust, na.rm = TRUE)
+
 g1 <- plot_ly(
   x = 0:5,
   y = 0:5,
   z = prob_x_y_ajust,
   type = "surface",
-  colorscale = "Viridis"
+  colorscale = paleta_emp,
+  cmin = 0, cmax = zmax,
+  colorbar = list(title = "Prob.<br>Empírica", x = 0.45, len = 0.7),
+  scene = "scene"
 )
 
 g2 <- plot_ly(
@@ -252,11 +308,84 @@ g2 <- plot_ly(
   y = 0:5,
   z = dist_teorica_ajust,
   type = "surface",
-  colorscale = "Reds"
+  colorscale = paleta_teo,
+  cmin = 0, cmax = zmax,
+  colorbar = list(title = "Prob.<br>Teórica", x = 1.0, len = 0.7),
+  scene = "scene2"
 )
 
-subplot(g1, g2, nrows = 1)
+fig_lado_a_lado <- subplot(g1, g2) %>%
+  layout(
+    title = list(
+      text = paste0(
+        "<b>Distribuição Empírica x Distribuição Teórica</b>",
+        "<br><sup>Comparação das probabilidades conjuntas P(X,Y) para X, Y = 0,…,5</sup>"
+      ),
+      x = 0.5
+    ),
+    scene = list(
+      domain = list(x = c(0, 0.5), y = c(0, 1)),
+      xaxis = list(title = "X"),
+      yaxis = list(title = "Y"),
+      zaxis = list(title = "P(X,Y)", range = c(0, zmax)),
+      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+    ),
+    scene2 = list(
+      domain = list(x = c(0.5, 1), y = c(0, 1)),
+      xaxis = list(title = "X"),
+      yaxis = list(title = "Y"),
+      zaxis = list(title = "P(X,Y)", range = c(0, zmax)),
+      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+    ),
+    annotations = list(
+      list(text = "<b>Empírica</b>", x = 0.22, y = 0.95,
+           xref = "paper", yref = "paper", showarrow = FALSE, font = list(size = 14)),
+      list(text = "<b>Teórica</b>", x = 0.78, y = 0.95,
+           xref = "paper", yref = "paper", showarrow = FALSE, font = list(size = 14))
+    ),
+    margin = list(t = 90)
+  )
 
+zmax <- max(prob_x_y_ajust, dist_teorica_ajust, na.rm = TRUE)
+
+
+fig_sobreposta <- plot_ly() %>%
+  add_surface(
+    x = 0:5, y = 0:5, z = prob_x_y_ajust,
+    name = "Empírica",
+    colorscale = paleta_emp,
+    cmin = 0, cmax = zmax,
+    opacity = 1,
+    colorbar = list(title = "Prob.<br>Empírica", x = 1.00, len = 0.6, y = 0.78)
+  ) %>%
+  add_surface(
+    x = 0:5, y = 0:5, z = dist_teorica_ajust,
+    name = "Teórica",
+    colorscale = paleta_teo,
+    cmin = 0, cmax = zmax,
+    opacity = 0.6,
+    colorbar = list(title = "Prob.<br>Teórica", x = 1.00, len = 0.6, y = 0.25)
+  ) %>%
+  layout(
+    title = list(
+      text = paste0(
+        "<b>Distribuição Empírica x Distribuição Teórica</b>",
+        "<br><sup>Superfícies sobrepostas de P(X,Y) para X, Y = 0,…,5</sup>"
+      ),
+      x = 0.5
+    ),
+    scene = list(
+      xaxis = list(title = "X"),
+      yaxis = list(title = "Y"),
+      zaxis = list(title = "P(X,Y)", range = c(0, zmax)),
+      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+    ),
+    margin = list(t = 90)
+  )
+
+fig_lado_a_lado
+
+fig_sobreposta
 
 # A distribuição conjunta teórica foi construída utilizando o modelo de Poisson bivariada. 
 # A partir dela, foram obtidas as distribuições marginais dos gols dos mandantes e dos visitantes. 
