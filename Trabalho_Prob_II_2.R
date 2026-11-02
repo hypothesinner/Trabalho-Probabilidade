@@ -1,17 +1,17 @@
 library(readxl)
 
 #Gols_mandante_x_gols_visitante <- read_excel("C:/Users/lenovo/Downloads/Gols mandante x gols visitante.xlsx")
-Gols_mandante_x_gols_visitante <- read_excel("C:/Users/GUILHERM/Downloads/Gols mandante x gols visitante (2).xlsx")
-#Gols_mandante_x_gols_visitante <- read_excel("Coloca o seu aqui MIGUEL")
+Gols_mandante_x_gols_visitante <- read_excel("Gols mandante x gols visitante.xlsx")
+
 
 #View(Gols_mandante_x_gols_visitante)
 
 mandantes <- Gols_mandante_x_gols_visitante$`X = gols mandante`
 visitantes <- Gols_mandante_x_gols_visitante$`Y = gols visitante`
 
-##### Distribuição conjunta impirica ###############
+##### Distribuição conjunta empírica ###############
 
-# A Distribuição conjunta impirica representa a probabilidade do time mandante (X) e o visitante (Y) marcarem determinadas quantidades de gols na mesma partida
+# A Distribuição conjunta empírica representa a probabilidade do time mandante (X) e o visitante (Y) marcarem determinadas quantidades de gols na mesma partida
 
 x_y <- table("X" = mandantes, "Y" = visitantes)
 prob_x_y <- x_y/49
@@ -21,7 +21,7 @@ prob_x_y
 
 prob_x_y_df <- as.data.frame(prob_x_y)
 
-########### Distribuiçao marginal #############
+########### Distribuição marginal #############
 
 p_x <- tapply(prob_x_y_df$Freq, prob_x_y_df$X, sum)
 prob_x <- data.frame("X" = sort(unique(mandantes)), "Probabilidade" = p_x)
@@ -121,7 +121,7 @@ ggplot(prob_y, aes(x = Y)) +
     plot.title = element_text(hjust = 0.5)
   )
 
-# INTERPRETAÇAO CASO X 
+# INTERPRETAÇÃO CASO X 
 
 #   O gráfico mostra uma comparação entre a distribuição empírica dos gols dos mandantes nas 49 partidas e a distribuição teórica de Poisson. 
 # É possível observar que a maior parte das partidas teve de 1 a 2 gols. As duas distribuições apresentam comportamentos semelhantes, 
@@ -130,7 +130,7 @@ ggplot(prob_y, aes(x = Y)) +
 # parte do comportamento dos gols dos mandantes, mas apresenta algumas diferenças em relação aos dados das partidas.
 
 
-# INTERPRETAÇAO CASO Y
+# INTERPRETAÇÃO CASO Y
 
 #   O gráfico mostra a comparação entre a distribuição empírica dos gols dos visitantes nas 49 partidas e a distribuição teórica de Poisson. 
 # Observa-se que as duas distribuições apresentam comportamentos bastante semelhantes, com probabilidades quase que iguais para todas as quantidades de gols . 
@@ -139,7 +139,7 @@ ggplot(prob_y, aes(x = Y)) +
 
 
 
-########### Distribuicao conjunta teorica - Poisson bivariada ###########
+########### Distribuição conjunta teórica - Poisson bivariada ###########
 
 # Função da Poisson bivariada
 
@@ -153,7 +153,7 @@ poisson_bivariada <- function(x,y, lambda1, lambda2, lambda3) {
   
 }
 
-#### Estimacao dos parametros 
+#### Estimação dos parâmetros 
 
 lambda3 <- cov
 lambda2 <- e_y - lambda3
@@ -178,7 +178,6 @@ colnames(dist_teorica) <- paste0("Y=", 0:n)
 
 dist_teorica
 
-dist_teorica_df <- as.data.frame(dist_teorica)
 
 #####33 Distribuicoes marginais obtidas pela Poisson bivariada
 
@@ -189,6 +188,75 @@ prob_x_teorica
 prob_y_teorica <- colSums(dist_teorica)
 prob_y_teorica
 
+# Comparação gráfica
+
+library(plotly)
+library(mgcv)
+
+prob_x_y_df$X <- as.numeric(as.character(prob_x_y_df$X))
+prob_x_y_df$Y <- as.numeric(as.character(prob_x_y_df$Y))
+
+as.numeric(as.character(prob_x_y_df$Y))
+
+modelo1 <- gam(
+  Freq ~ s(X, Y, bs = "tp"),
+  data = prob_x_y_df,
+  method = "REML"
+)
+
+dist_teorica_tb <- as.table(dist_teorica)
+
+rownames(dist_teorica_tb) <- 0:6
+colnames(dist_teorica_tb) <- 0:6
+
+dist_teorica_tb
+dist_teorica_df <- as.data.frame(dist_teorica_tb)
+names(dist_teorica_df) <- c("X", "Y", "Prob")
+
+dist_teorica_df$X <- as.numeric(as.character(dist_teorica_df$X))
+dist_teorica_df$Y <- as.numeric(as.character(dist_teorica_df$Y))
+
+modelo2 <- gam(
+  Prob ~ s(X, Y, bs = "tp"),
+  data = dist_teorica_df,
+  method = "REML"
+)
+
+prev_emp <- predict(modelo1)
+
+prev_teo <- predict(modelo2)
+
+prob_x_y_ajust <- matrix(
+  prev_emp,
+  nrow = nrow(prob_x_y),
+  ncol = ncol(prob_x_y)
+)
+
+dist_teorica_ajust <- matrix(
+  prev_teo,
+  nrow = nrow(dist_teorica_tb),
+  ncol = ncol(dist_teorica_tb)
+)
+
+
+g1 <- plot_ly(
+  x = 0:5,
+  y = 0:5,
+  z = prob_x_y_ajust,
+  type = "surface",
+  colorscale = "Viridis"
+)
+
+g2 <- plot_ly(
+  x = 0:5,
+  y = 0:5,
+  z = dist_teorica_ajust,
+  type = "surface",
+  colorscale = "Reds"
+)
+
+subplot(g1, g2, nrows = 1)
+
 
 # A distribuição conjunta teórica foi construída utilizando o modelo de Poisson bivariada. 
 # A partir dela, foram obtidas as distribuições marginais dos gols dos mandantes e dos visitantes. 
@@ -196,7 +264,7 @@ prob_y_teorica
 # probabilidade corresponde a 0 gols (39,08 %). Além disso, as probabilidades diminuem à medida em que o número de gols aumenta, 
 # indicando que resultados que apresentam muitos gols são menos prováveis.
 
-######## Disttibuicao da s ###############
+######## Distribuições de transformações ###############
 
 # SOMA
 
@@ -212,7 +280,7 @@ e_soma
 var_soma <- var(soma)
 var_soma
 
-#DIFERENCA
+#DIFERENÇA
 
 diferenca <- mandantes-visitantes
 p_diferenca <- table(diferenca)/length(diferenca)
@@ -224,7 +292,7 @@ e_diferenca
 var_diferenca <- var(diferenca)
 var_diferenca
 
-# Covariancia e correlaçao
+# Covariancia e correlação
 
 cov_sd <- cov(soma, diferenca)
 cov_sd
