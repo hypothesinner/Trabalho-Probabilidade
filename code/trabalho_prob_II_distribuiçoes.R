@@ -1,0 +1,430 @@
+library(readxl)
+
+#Gols_mandante_x_gols_visitante <- read_excel("C:/Users/lenovo/Downloads/Gols mandante x gols visitante.xlsx")
+#Gols_mandante_x_gols_visitante <- read_excel("Gols mandante x gols visitante.xlsx")
+Gols_mandante_x_gols_visitante <- read_excel("C:/Users/GUILHERM/Downloads/Gols mandante x gols visitante (2).xlsx")
+
+#View(Gols_mandante_x_gols_visitante)
+
+mandantes <- Gols_mandante_x_gols_visitante$`X = gols mandante`
+visitantes <- Gols_mandante_x_gols_visitante$`Y = gols visitante`
+
+
+##### Distribuição conjunta empírica ###############
+
+# A Distribuição conjunta empírica representa a probabilidade do time mandante (X) e o visitante (Y) marcarem
+# determinadas quantidades de gols na mesma partida
+
+x_y <- table("X" = mandantes, "Y" = visitantes)
+prob_x_y <- x_y/49
+
+x_y
+prob_x_y
+
+prob_x_y_df <- as.data.frame(prob_x_y)
+
+########### Distribuição marginal #############
+
+p_x <- tapply(prob_x_y_df$Freq, prob_x_y_df$X, sum)
+prob_x <- data.frame("X" = sort(unique(mandantes)), "Probabilidade" = p_x)
+
+p_y <- tapply(prob_x_y_df$Freq, prob_x_y_df$Y, sum)
+prob_y <- data.frame("Y" = sort(unique(visitantes)), "Probabilidade" = p_y)
+
+prob_y
+prob_x
+
+p_y
+p_x
+
+###### Medidas descritivas
+
+e_x <- mean(mandantes)
+e_y <- mean(visitantes)
+
+var_x <- var(mandantes)
+var_y <- var(visitantes)
+
+cov <- cov(mandantes, visitantes)
+cor <- cor(mandantes, visitantes)
+
+medidas_resumo <- data.frame("Variável" = c("X", "Y"), "Média" = c(e_x, e_y), 
+                             "Variância" = c(var_x, var_y), "Covariância" = c(cov, "-"), "Correlação" = c(cor, "-"))
+medidas_resumo
+
+prob_x
+prob_y
+
+lambda_x <- e_x
+lambda_y <- e_y
+
+#   A partir das medidas descritivas, é possível observar que a média de ols dos times mandantes foi de aproximadamente 1,51,
+# enquanto a dos visitantes foi de 0,94. Isso indica que os mandantes marcaram, em média, mais gols que os visitantes.
+
+#   Em relação à variância, os gols dos mandantes apresentaram valor de 1,38, enquanto os dos visitantes apresentaram 1,02. Isso mostra que
+# houve uma variação maior na quantidade de gols marcados pelos mandantes do que os visitantes entre as partidas analisadas.
+
+#   A covariância entre as variáveis foi de aproximadamente 0,053, indicando uma tendência de variação na mesma direção entre os gols dos mandantes e visitantes. 
+# Entretanto, como esse valor é muito próximo de zero, essa associação é bastante fraca. Isso também é observado no coeficiente de correlação, que foi de 
+# aproximadamente 0,045, indicando uma relação linear positiva muito fraca entre as variáveis.
+
+# A correlação positiva é um fator que possibilita a modelagem dessa distribuição por uma Poisson bivariada, uma vez que essa apenas admite parâmetros positivos
+# Além disso, a baixa magnitude do valor demonstra uma relação muito pequena entre os mandos de campo no número de gols, embora não nula, apresentando um pequeno
+# desvio positivo em razão da tendência de placares baixos pela competitividade do campeonato e pelo desgaste do fator fora, relacionado com distâncias e diversidade
+# de condições climáticas (geralmente extenunantes ou limitadoras da performance), fazendo com que os visitantes busquem pelo empate e limitem os gols para baixo, 
+# fazendo com que mandante e visitante marquem menos.
+
+######### distribuicoes marginais teoricas -  Poisson univariada ##############
+
+library(ggplot2)
+
+#### PARA X
+
+prob_x$Poisson <- dpois(prob_x$X, lambda = lambda_x)
+
+ggplot(prob_x, aes(x = X)) +
+  geom_point(aes(y = Probabilidade, color = "Empírica"), size = 2) +
+  geom_line(aes(y = Probabilidade, color = "Empírica"), linewidth = 1) +
+  geom_point(aes(y = Poisson, color = "Poisson teórica"), size = 2) +
+  geom_line(aes(y = Poisson, color = "Poisson teórica"), linewidth = 1,
+            linetype = "dashed") +
+  labs(
+    title = "Distribuição empírica x Poisson teórica",
+    subtitle = paste0("Comparação das probabilidades observadas com Poisson (λ = ",
+                      round(lambda_x, 2), ")"),
+    x = "X",
+    y = "Probabilidade",
+    color = "Distribuição"
+  ) +
+  scale_color_manual(values = c(
+    "Empírica" = "steelblue",
+    "Poisson teórica" = "red"
+  )) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, color = "grey30")
+  )
+
+
+# PARA Y
+
+prob_y$Poisson <- dpois(prob_y$Y, lambda = lambda_y)
+
+ggplot(prob_y, aes(x = Y)) +
+  geom_point(aes(y = Probabilidade, color = "Empírica"), size = 2) +
+  geom_line(aes(y = Probabilidade, color = "Empírica"), linewidth = 1) +
+  geom_point(aes(y = Poisson, color = "Poisson teórica"), size = 2) +
+  geom_line(aes(y = Poisson, color = "Poisson teórica"), linewidth = 1,
+            linetype = "dashed") +
+  labs(
+    title = "Distribuição empírica x Poisson teórica",
+    subtitle = paste0("Comparação das probabilidades observadas com Poisson (λ = ",
+                      round(lambda_x, 2), ")"),
+    x = "Y",
+    y = "Probabilidade",
+    color = "Distribuição"
+  ) +
+  scale_color_manual(values = c(
+    "Empírica" = "steelblue",
+    "Poisson teórica" = "red"
+  )) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5)
+  )
+
+
+#################### Distribuiçao empirica x Poisson teorica ###############
+
+
+ggplot(prob_y, aes(x = Y)) +
+  geom_col(aes(y = Probabilidade, fill = "Empírica"), alpha = 0.7, width = 0.6) +
+  geom_point(aes(y = Poisson, color = "Poisson teórica"), size = 3, shape = 18) +
+  geom_line(aes(y = Poisson, color = "Poisson teórica"), linetype = "dashed") +
+  scale_fill_manual(values = c("Empírica" = "steelblue")) +
+  scale_color_manual(values = c("Poisson teórica" = "firebrick")) +
+  scale_x_continuous(breaks = 0:max(prob_x$X)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Distribuição empírica x Poisson teórica",
+    subtitle = paste0("Comparação das probabilidades observadas com Poisson (λ = ",
+                      round(lambda_x, 2), ")"),
+    x = "X", y = "Probabilidade", fill = NULL, color = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, color = "grey30")
+  )
+
+# INTERPRETAÇÃO CASO X 
+
+#   O gráfico mostra uma comparação entre a distribuição empírica dos gols dos mandantes nas 49 partidas e a distribuição teórica de Poisson. 
+# É possível observar que a maior parte das partidas teve de 1 a 2 gols. As duas distribuições apresentam comportamentos semelhantes, 
+# principalmente para 0 e 1 gol. Porém, para 2 gols, a probabilidade observada foi maior do que a estimada pelo modelo. Já para 3 e 4 gols, 
+# aconteceu o contrário, pois o modelo estimou probabilidades maiores do que as observadas. Assim, a distribuição de Poisson consegue representar 
+# parte do comportamento dos gols dos mandantes, mas apresenta algumas diferenças em relação aos dados das partidas.
+
+
+# INTERPRETAÇÃO CASO Y
+
+#   O gráfico mostra a comparação entre a distribuição empírica dos gols dos visitantes nas 49 partidas e a distribuição teórica de Poisson. 
+# Observa-se que as duas distribuições apresentam comportamentos bastante semelhantes, com probabilidades quase que iguais para todas as quantidades de gols . 
+# As maiores probabilidades estão concentradas em 0 e 1 gol, enquanto as probabilidades diminuem conforme a quantidade de gols aumenta. Portanto, 
+# o modelo de Poisson apresentou um ajuste bom aos dados observados, conseguindo representar a distribuição dos gols dos visitantes de forma satisfatória .
+
+
+
+########### Distribuição conjunta teórica - Poisson bivariada ###########
+
+# Função da Poisson bivariada
+
+poisson_bivariada <- function(x,y, lambda1, lambda2, lambda3) {
+  
+  k <- 0:min(x,y)
+  coef <- (lambda1^(x-k) *lambda2^(y-k)*lambda3^k)/(factorial(x-k)*factorial(y-k)*factorial(k))
+  prob <- exp(-(lambda1 + lambda2 + lambda3))*sum(coef)
+  
+  return(prob)
+  
+}
+
+#### Estimação dos parâmetros 
+
+lambda3 <- cov
+lambda2 <- e_y - lambda3
+lambda1 <- e_x - lambda3
+
+###### Construção da distribuição conjunta teórica
+
+n <- as.numeric(length(p_x))
+
+dist_teorica <- matrix(0, nrow = n+1, ncol = n+1)
+
+for (x in 0:n) {
+  for (y in 0:n) {
+    dist_teorica[x+1, y+1] <- poisson_bivariada(
+      x, y, lambda1, lambda2, lambda3
+    )
+  }
+}
+
+rownames(dist_teorica) <- paste0("X=", 0:n)
+colnames(dist_teorica) <- paste0("Y=", 0:n)
+
+dist_teorica
+
+
+####### Distribuicoes marginais obtidas pela Poisson bivariada
+
+
+prob_x_teorica <- rowSums(dist_teorica)
+prob_x_teorica
+
+prob_y_teorica <- colSums(dist_teorica)
+prob_y_teorica
+
+# Comparação gráfica (Grafico 3D)
+
+library(plotly)
+library(mgcv)
+
+prob_x_y_df$X <- as.numeric(as.character(prob_x_y_df$X))
+prob_x_y_df$Y <- as.numeric(as.character(prob_x_y_df$Y))
+
+as.numeric(as.character(prob_x_y_df$Y))
+
+modelo1 <- gam(
+  Freq ~ s(X, Y, bs = "tp"),
+  data = prob_x_y_df,
+  method = "REML"
+)
+
+dist_teorica_tb <- as.table(dist_teorica)
+
+rownames(dist_teorica_tb) <- 0:6
+colnames(dist_teorica_tb) <- 0:6
+
+dist_teorica_tb
+dist_teorica_df <- as.data.frame(dist_teorica_tb)
+names(dist_teorica_df) <- c("X", "Y", "Prob")
+
+dist_teorica_df$X <- as.numeric(as.character(dist_teorica_df$X))
+dist_teorica_df$Y <- as.numeric(as.character(dist_teorica_df$Y))
+
+modelo2 <- gam(
+  Prob ~ s(X, Y, bs = "tp"),
+  data = dist_teorica_df,
+  method = "REML"
+)
+
+
+prev_emp <- predict(modelo1)
+
+prev_teo <- predict(modelo2)
+
+prob_x_y_ajust <- matrix(
+  prev_emp,
+  nrow = nrow(prob_x_y),
+  ncol = ncol(prob_x_y)
+)
+
+dist_teorica_ajust <- matrix(
+  prev_teo,
+  nrow = nrow(dist_teorica_tb),
+  ncol = ncol(dist_teorica_tb)
+)
+
+
+# Paletas personalizadas (baixo -> alto)
+
+paleta_emp <- list(
+  c(0.00, "#f7fcf0"),
+  c(0.25, "#a8ddb5"),
+  c(0.50, "#4eb3d3"),
+  c(0.75, "#2b8cbe"),
+  c(1.00, "#084081")
+)
+
+paleta_teo <- list(
+  c(0.00, "#fff5eb"),
+  c(0.25, "#fdd0a2"),
+  c(0.50, "#fd8d3c"),
+  c(0.75, "#d94801"),
+  c(1.00, "#7f2704")
+)
+
+# Escala z comum, para comparação visual justa entre os dois gráficos
+
+g1 <- plot_ly(
+  x = 0:5, y = 0:5, z = prob_x_y_ajust,
+  type = "surface",
+  colorscale = paleta_emp,
+  cmin = 0, cmax = zmax,
+  scene = "scene",
+  colorbar = list(
+    title = "Prob.<br>Empírica",
+    x = 0.44, xanchor = "left",
+    y = 0.5, yanchor = "middle",
+    len = 0.6, thickness = 15
+  )
+)
+
+g2 <- plot_ly(
+  x = 0:5, y = 0:5, z = dist_teorica_ajust,
+  type = "surface",
+  colorscale = paleta_teo,
+  cmin = 0, cmax = zmax,
+  scene = "scene2",
+  colorbar = list(
+    title = "Prob.<br>Teórica",
+    x = 0.98, xanchor = "left",
+    y = 0.5, yanchor = "middle",
+    len = 0.6, thickness = 15
+  )
+)
+
+############# Grafico 3D lado a lado ##############
+
+fig_lado_a_lado <- subplot(g1, g2) %>%
+  layout(
+    title = list(
+      text = paste0(
+        "<b>Distribuição Empírica x Distribuição Teórica</b>",
+        "<br><sup>Comparação das probabilidades conjuntas P(X,Y) para X, Y = 0,…,5</sup>"
+      ),
+      x = 0.5
+    ),
+    scene = list(
+      domain = list(x = c(0, 0.42), y = c(0, 1)),
+      xaxis = list(title = "X"),
+      yaxis = list(title = "Y"),
+      zaxis = list(title = "P(X,Y)", range = c(0, zmax)),
+      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+    ),
+    scene2 = list(
+      domain = list(x = c(0.54, 0.96), y = c(0, 1)),
+      xaxis = list(title = "X"),
+      yaxis = list(title = "Y"),
+      zaxis = list(title = "P(X,Y)", range = c(0, zmax)),
+      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+    ),
+    annotations = list(
+      list(text = "<b>Empírica</b>", x = 0.21, y = 0.95,
+           xref = "paper", yref = "paper", showarrow = FALSE, font = list(size = 14)),
+      list(text = "<b>Teórica</b>", x = 0.75, y = 0.95,
+           xref = "paper", yref = "paper", showarrow = FALSE, font = list(size = 14))
+    ),
+    margin = list(t = 90, r = 80)
+  )
+
+########### Graficos 3D sobrepostos ##################
+
+fig_sobreposta <- plot_ly() %>%
+  add_surface(
+    x = 0:5, y = 0:5, z = prob_x_y_ajust,
+    name = "Empírica",
+    colorscale = paleta_emp,
+    cmin = 0, cmax = 0.14,
+    opacity = 1,
+    colorbar = list(
+      title = list(text = "Prob.<br>Empírica", font = list(size = 14)),
+      tickfont = list(size = 13),
+      tickmode = "linear", tick0 = 0, dtick = 0.02,
+      tickformat = ".2f",
+      ticks = "outside", ticklen = 5,
+      x = 1.02, xanchor = "left",
+      y = 1.0, yanchor = "top",
+      len = 0.46, thickness = 25
+    )
+  ) %>%
+  add_surface(
+    x = 0:5, y = 0:5, z = dist_teorica_ajust,
+    name = "Teórica",
+    colorscale = paleta_teo,
+    cmin = 0, cmax = 0.14,
+    opacity = 0.6,
+    colorbar = list(
+      title = list(text = "Prob.<br>Teórica", font = list(size = 14)),
+      tickfont = list(size = 13),
+      tickmode = "linear", tick0 = 0, dtick = 0.02,
+      tickformat = ".2f",
+      ticks = "outside", ticklen = 5,
+      x = 1.02, xanchor = "left",
+      y = 0.0, yanchor = "bottom",
+      len = 0.46, thickness = 25
+    )
+  ) %>%
+  layout(
+    title = list(
+      text = paste0(
+        "<b>Distribuição Empírica x Distribuição Teórica</b>",
+        "<br><sup>Superfícies sobrepostas de P(X,Y) para X, Y = 0,…,5</sup>"
+      ),
+      x = 0.5
+    ),
+    scene = list(
+      domain = list(x = c(0, 0.86), y = c(0, 1)),
+      xaxis = list(title = "X"),
+      yaxis = list(title = "Y"),
+      zaxis = list(title = "P(X,Y)", range = c(0, 0.14)),
+      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+    ),
+    margin = list(t = 90, r = 60)
+  )
+
+fig_lado_a_lado
+
+fig_sobreposta
+
+
+# A distribuição conjunta teórica foi construída utilizando o modelo de Poisson bivariada. 
+# A partir dela, foram obtidas as distribuições marginais dos gols dos mandantes e dos visitantes. 
+# Observa-se que o modelo estima maior probabilidade de os mandantes marcarem 1 gol (33,35 %), enquanto que para os visitantes, a maior 
+# probabilidade corresponde a 0 gols (39,08 %). Além disso, as probabilidades diminuem à medida em que o número de gols aumenta, 
+# indicando que resultados que apresentam muitos gols são menos prováveis.
+
