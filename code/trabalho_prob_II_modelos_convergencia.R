@@ -1,8 +1,6 @@
 library(readxl)
 
-#Gols_mandante_x_gols_visitante <- read_excel("C:/Users/lenovo/Downloads/Gols mandante x gols visitante.xlsx")
-#Gols_mandante_x_gols_visitante <- read_excel("Gols mandante x gols visitante.xlsx")
-Gols_mandante_x_gols_visitante <- read_excel("C:/Users/GUILHERM/Downloads/Gols mandante x gols visitante (2).xlsx")
+Gols_mandante_x_gols_visitante <- read_excel("data/Gols mandante x gols visitante.xlsx")
 
 #View(Gols_mandante_x_gols_visitante)
 

@@ -1,8 +1,6 @@
 library(readxl)
 
-#Gols_mandante_x_gols_visitante <- read_excel("C:/Users/lenovo/Downloads/Gols mandante x gols visitante.xlsx")
-#Gols_mandante_x_gols_visitante <- read_excel("Gols mandante x gols visitante.xlsx")
-Gols_mandante_x_gols_visitante <- read_excel("C:/Users/GUILHERM/Downloads/Gols mandante x gols visitante (2).xlsx")
+Gols_mandante_x_gols_visitante <- read_excel("data/Gols mandante x gols visitante.xlsx")
 
 #View(Gols_mandante_x_gols_visitante)
 
@@ -279,26 +277,33 @@ dist_teorica_ajust <- matrix(
   ncol = ncol(dist_teorica_tb)
 )
 
+library(plotly)
 
 # Paletas personalizadas (baixo -> alto)
+# Paletas personalizadas (baixo -> alto)
+
 
 paleta_emp <- list(
-  c(0.00, "#f7fcf0"),
-  c(0.25, "#a8ddb5"),
-  c(0.50, "#4eb3d3"),
-  c(0.75, "#2b8cbe"),
-  c(1.00, "#084081")
+  c(0.00, "#fcfbfd"),
+  c(0.25, "#cbc9e2"),
+  c(0.50, "#9e9ac8"),
+  c(0.75, "#6a51a3"),
+  c(1.00, "#3f007d")
 )
 
 paleta_teo <- list(
-  c(0.00, "#fff5eb"),
-  c(0.25, "#fdd0a2"),
-  c(0.50, "#fd8d3c"),
-  c(0.75, "#d94801"),
-  c(1.00, "#7f2704")
+  c(0.00, "#fff7f3"),
+  c(0.25, "#fcc5c0"),
+  c(0.50, "#f768a1"),
+  c(0.75, "#c51b8a"),
+  c(1.00, "#7a0177")
 )
 
 # Escala z comum, para comparação visual justa entre os dois gráficos
+
+zmax <- max(prob_x_y_ajust, dist_teorica_ajust, na.rm = TRUE)
+
+########### Graficos 3D lado a lado ##################
 
 g1 <- plot_ly(
   x = 0:5, y = 0:5, z = prob_x_y_ajust,
@@ -327,8 +332,6 @@ g2 <- plot_ly(
     len = 0.6, thickness = 15
   )
 )
-
-############# Grafico 3D lado a lado ##############
 
 fig_lado_a_lado <- subplot(g1, g2) %>%
   layout(
@@ -362,7 +365,13 @@ fig_lado_a_lado <- subplot(g1, g2) %>%
     margin = list(t = 90, r = 80)
   )
 
+fig_lado_a_lado
+
 ########### Graficos 3D sobrepostos ##################
+
+# Camera e proporcoes (so para a sobreposta)
+cam <- list(eye = list(x = 1.3, y = -1.3, z = 0.7))
+asp <- list(x = 1.2, y = 1.2, z = 0.75)
 
 fig_sobreposta <- plot_ly() %>%
   add_surface(
@@ -377,9 +386,9 @@ fig_sobreposta <- plot_ly() %>%
       tickmode = "linear", tick0 = 0, dtick = 0.02,
       tickformat = ".2f",
       ticks = "outside", ticklen = 5,
-      x = 1.02, xanchor = "left",
+      x = 0.96, xanchor = "left",
       y = 1.0, yanchor = "top",
-      len = 0.46, thickness = 25
+      len = 0.46, thickness = 22
     )
   ) %>%
   add_surface(
@@ -394,9 +403,9 @@ fig_sobreposta <- plot_ly() %>%
       tickmode = "linear", tick0 = 0, dtick = 0.02,
       tickformat = ".2f",
       ticks = "outside", ticklen = 5,
-      x = 1.02, xanchor = "left",
+      x = 0.96, xanchor = "left",
       y = 0.0, yanchor = "bottom",
-      len = 0.46, thickness = 25
+      len = 0.46, thickness = 22
     )
   ) %>%
   layout(
@@ -408,16 +417,15 @@ fig_sobreposta <- plot_ly() %>%
       x = 0.5
     ),
     scene = list(
-      domain = list(x = c(0, 0.86), y = c(0, 1)),
+      domain = list(x = c(0, 0.95), y = c(0, 1)),
       xaxis = list(title = "X"),
       yaxis = list(title = "Y"),
-      zaxis = list(title = "P(X,Y)", range = c(0, 0.14)),
-      camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))
+      zaxis = list(title = "P(X,Y)", range = c(0, 0.14), dtick = 0.02),
+      aspectmode = "manual", aspectratio = asp,
+      camera = cam
     ),
-    margin = list(t = 90, r = 60)
+    margin = list(t = 70, r = 0, b = 10, l = 0)
   )
-
-fig_lado_a_lado
 
 fig_sobreposta
 
